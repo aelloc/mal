@@ -25,6 +25,7 @@ pub async fn create_app(state: State) -> anyhow::Result<Router> {
     let mut api = OpenApi::default();
 
     let app = aide::axum::ApiRouter::new()
+        .route("/", get(dummy))
         .nest("/animes", anime::router(state.clone()))
         .nest("/anime-genres", anime_genres::router(state.clone()))
         .route("/api.json", get(serve_docs))
@@ -45,6 +46,10 @@ pub async fn create_app(state: State) -> anyhow::Result<Router> {
         )
         .with_state(state);
     Ok(app)
+}
+
+async fn dummy() -> &'static str {
+    "Hello World"
 }
 
 async fn serve_docs(Extension(api): Extension<Arc<OpenApi>>) -> impl IntoApiResponse {

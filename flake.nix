@@ -33,7 +33,9 @@
             cargo
             rustc
             clippy
+            nodejs
             rustfmt
+
             rust-analyzer
             nixd
             statix
