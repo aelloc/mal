@@ -18,13 +18,12 @@ services:
 
   postgres_init:
     image: postgres:18-alpine
-    # command: /bin/bash /init_db.sh
+    command: /bin/bash /init_db.sh
     volumes:
       - ./init_db.sh:/init_db.sh
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
-      POSTGRES_DB: postgres
       DATABASES: control-panel,hr-and-people,ldap,hrm,document-management,hrm-hr-and-people,operation
     depends_on:
       postgres:
@@ -45,6 +44,38 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+
+  cibseven:
+    image: cibseven/cibseven:latest
+    environment:
+      DB_DRIVER: org.postgresql.Driver
+      DB_URL: jdbc:postgresql://postgres:5432/operation
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+
+      OPERATON_BPM_RUN_EXAMPLE_ENABLED: false
+      OPERATON_BPM_RUN_CORS_ENABLED: true
+      OPERATON_BPM_RUN_AUTH_ENABLED: true
+      OPERATON_BPM_RUN_CORS_ALLOW_CREDENTIALS: false
+      OPERATON_BPM_RUN_CORS_ALLOWED_ORIGINS: "*"
+      OPERATON_BPM_RUN_CORS_ALLOWED_HEADERS: Origin,X-Requested-With,Content-Type,Accept,Authorization
+      LOGGING_LEVEL_ROOT: INFO
+      REST_AUTH_ENABLED: true
+    ports:
+      - "8091:8080"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8080/engine-rest/engine || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    depends_on:
+      postgres_init:
+        condition: service_completed_successfully
 
   redis:
     image: redis:8.8-alpine

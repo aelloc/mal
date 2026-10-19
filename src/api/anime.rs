@@ -1,20 +1,21 @@
-use crate::api::consruct_response;
-use crate::entities::animes::UpdateAnime;
-use crate::{State as AppState, api::AppResponse, entities::animes::CreateAnime};
 use crate::{
-    api::AppError,
-    entities::animes::{Entity as AnimeEntity, Model},
+    State as AppState,
+    api::{AppError, AppResponse, consruct_response},
+    entities::animes::{CreateAnime, Entity as AnimeEntity, Model, UpdateAnime},
 };
-use aide::axum::routing::get_with;
 use aide::{
-    axum::{ApiRouter, routing::post_with},
+    axum::{
+        ApiRouter,
+        routing::{get_with, post_with},
+    },
     transform::TransformOperation,
 };
-use axum::extract::Path;
-use axum::http::request;
-use axum::{Json, extract::State, http::StatusCode};
-use sea_orm::IntoActiveModel;
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, IntoActiveModel};
 
 pub fn router(state: AppState) -> ApiRouter<AppState> {
     ApiRouter::new()
@@ -31,7 +32,6 @@ pub fn router(state: AppState) -> ApiRouter<AppState> {
         .with_state(state)
 }
 
-#[axum::debug_handler]
 #[tracing::instrument]
 pub async fn create_anime(
     State(state): State<AppState>,
@@ -50,7 +50,6 @@ pub fn create_anime_docs(op: TransformOperation) -> TransformOperation {
     op.tag("Anime")
 }
 
-#[axum::debug_handler]
 #[tracing::instrument]
 pub async fn list_anime(
     State(state): State<AppState>,
@@ -67,12 +66,12 @@ pub fn list_anime_docs(op: TransformOperation) -> TransformOperation {
     op.tag("Anime")
 }
 
-#[axum::debug_handler]
 #[tracing::instrument]
 pub async fn get_anime(
     Path(anime_id): Path<i32>,
     State(state): State<AppState>,
 ) -> Result<AppResponse<Model>, AppError> {
+    // FIXME: remove unwrap
     let anime = AnimeEntity::find_by_id(anime_id)
         .one(&state.db_conn)
         .await
@@ -89,7 +88,6 @@ pub fn get_animes_docs(op: TransformOperation) -> TransformOperation {
     op.tag("Anime")
 }
 
-#[axum::debug_handler]
 #[tracing::instrument]
 pub async fn update_anime(
     Path(anime_id): Path<i64>,
@@ -98,40 +96,39 @@ pub async fn update_anime(
 ) -> Result<AppResponse<Model>, AppError> {
     let mut anime = request.into_active_model();
     anime.id = Set(anime_id);
+    let anime = anime.update(&state.db_conn).await;
 
-    match anime.update(&state.db_conn).await {
-        Ok(anime) => Ok(AppResponse {
-            status_code: StatusCode::OK.into(),
-            message: "anime updated successfully".into(),
-            data: Some(anime),
-        }),
-        Err(err) => Err(AppError {
-            status_code: StatusCode::INTERNAL_SERVER_ERROR.into(),
-            message: format!("Error occured while updating anime: {:?}", err),
-        }),
-    }
+    consruct_response(
+        anime,
+        "anime updated successfully".into(),
+        "error occured while updating anime".into(),
+    )
 }
 
 pub fn update_anime_docs(op: TransformOperation) -> TransformOperation {
     op.tag("Anime")
 }
 
-#[axum::debug_handler]
 #[tracing::instrument]
 pub async fn delete_anime(
     Path(anime_id): Path<i32>,
     State(state): State<AppState>,
 ) -> Result<AppResponse<Model>, AppError> {
-    let entity = AnimeEntity::find_by_id(anime_id)
-        .one(&state.db_conn)
+    // FIXME: remove unwrap
+    match AnimeEntity::delete_by_id(anime_id)
+        .exec(&state.db_conn)
         .await
-        .unwrap();
-
-    Ok(AppResponse {
-        status_code: StatusCode::OK.into(),
-        message: String::new(),
-        data: entity,
-    })
+    {
+        Ok(_) => Ok(AppResponse {
+            status_code: StatusCode::OK.into(),
+            message: "anime deleted successfully".into(),
+            data: None,
+        }),
+        Err(err) => Err(AppError {
+            status_code: StatusCode::INTERNAL_SERVER_ERROR.into(),
+            message: format!("error occured while deleting anime: {:?}", err),
+        }),
+    }
 }
 
 pub fn delete_anime_docs(op: TransformOperation) -> TransformOperation {
