@@ -3,7 +3,7 @@ use aide::{
     transform::TransformOperation,
 };
 use axum::{Json, extract::State, http::StatusCode};
-use sea_orm::{ActiveModelTrait, DbBackend, IntoActiveModel, QueryTrait};
+use sea_orm::{ActiveModelTrait, IntoActiveModel};
 
 use crate::{
     State as AppState,

@@ -1,0 +1,122 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "$POSTGRES_USER", "-d", "$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  postgres_init:
+    image: postgres:18-alpine
+    # command: /bin/bash /init_db.sh
+    volumes:
+      - ./init_db.sh:/init_db.sh
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      DATABASES: control-panel,hr-and-people,ldap,hrm,document-management,hrm-hr-and-people,operation
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_ui
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@uportal.uz
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: false
+      PGADMIN_CONFIG_SERVER_MODE: false
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  redis:
+    image: redis:8.8-alpine
+    container_name: redis_server
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.runtime/redis_data:/data
+    command: redis-server --appendonly yes
+
+  rustfs:
+    image: rustfs/rustfs:1.0.0-beta.11
+    #restart: unless-stopped
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      - RUSTFS_ACCESS_KEY=rustfsadmin
+      - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_CONSOLE_ENABLE=true
+    volumes:
+      - rustfs-data:/data:rw
+
+  garage:
+    image: dxflrs/garage:v2.3.0
+    restart: unless-stopped
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-data:/var/lib/garage/data
+      - garage-meta:/var/lib/garage/meta
+    environment:
+      GARAGE_RPC_SECRET: bde00910b339dbc6117a859d5e61a9e02c3b216b2986b05cb9513c81c825bd62
+      GARAGE_DEFAULT_ACCESS_KEY: "garage-user"
+      GARAGE_DEFAULT_SECRET_KEY: "reallyverysecret"
+      GARAGE_DEFAULT_BUCKET: "unused-bucket"
+      GARAGE_ADMIN_TOKEN: test_admin_token
+    ports:
+      - 3900:3900
+      - 3903:3903
+    command: /garage server --single-node --default-bucket
+    healthcheck:
+      test: ["CMD", "/garage", "-c", "/etc/garage.toml", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  garage-ui:
+    image: noooste/garage-ui:latest
+    restart: unless-stopped
+    ports:
+      - 9091:8080
+    depends_on:
+      garage:
+        condition: service_healthy
+    environment:
+      # Garage S3 Configuration
+      GARAGE_UI_GARAGE_ENDPOINT: "garage:3900"
+      GARAGE_UI_GARAGE_ADMIN_ENDPOINT: "http://garage:3903"
+      GARAGE_UI_GARAGE_ADMIN_TOKEN: test_admin_token
+      GARAGE_UI_GARAGE_REGION: "garage"
+
+      # Server Configuration
+      GARAGE_UI_SERVER_HOST: "0.0.0.0"
+      GARAGE_UI_SERVER_PORT: "8080"
+      GARAGE_UI_SERVER_ENVIRONMENT: "production"
+
+volumes:
+  pg_data:
+  rustfs-data:
+  garage-data:
+    driver: local
+
+  garage-meta:
+    driver: local

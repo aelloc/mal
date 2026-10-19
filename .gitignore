@@ -3,3 +3,7 @@ result*
 
 .direnv/
 .env
+
+
+.runtime_data/
+.cargo

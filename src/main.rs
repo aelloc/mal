@@ -1,4 +1,3 @@
-
 use anyhow::Context;
 use sea_orm::{Database, DatabaseConnection};
 
@@ -21,9 +20,9 @@ async fn main() -> anyhow::Result<()> {
     let db_url = std::env::var("DATABASE_URL")?;
     let db = Database::connect(db_url).await?;
 
-    // db.get_schema_registry(module_path!().split("::").next().unwrap())
-    //     .sync(&db)
-    //     .await?;
+    db.get_schema_registry(module_path!().split("::").next().unwrap())
+        .sync(&db)
+        .await?;
 
     let state = State { db_conn: db };
     let app = api::create_app(state).await?;

@@ -2,9 +2,6 @@ pub mod anime;
 pub mod anime_genres;
 pub mod extractor;
 pub mod openapi;
-
-use std::sync::Arc;
-
 use aide::{
     OperationIo,
     axum::{IntoApiResponse, routing::get},
@@ -13,8 +10,10 @@ use aide::{
 };
 use axum::{Extension, Json, Router, http::StatusCode, response::IntoResponse};
 use schemars::JsonSchema;
+use sea_orm::DbErr;
 use serde::Serialize;
 use serde_json::json;
+use std::sync::Arc;
 use tower_http::cors;
 
 use crate::State;
@@ -77,5 +76,42 @@ where
             })),
         )
             .into_response()
+    }
+}
+
+#[derive(Serialize, Debug, OperationIo, JsonSchema)]
+pub struct AppError {
+    status_code: u16,
+    message: String,
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        (
+            StatusCode::from_u16(self.status_code).unwrap(),
+            axum::Json(json!({
+                "status_code": self.status_code,
+                "message": self.message,
+            })),
+        )
+            .into_response()
+    }
+}
+
+pub fn consruct_response<T: Serialize>(
+    value: Result<T, DbErr>,
+    message: String,
+    error_message: String,
+) -> Result<AppResponse<T>, AppError> {
+    match value {
+        Ok(anime) => Ok(AppResponse {
+            status_code: StatusCode::OK.into(),
+            message,
+            data: Some(anime),
+        }),
+        Err(err) => Err(AppError {
+            status_code: StatusCode::INTERNAL_SERVER_ERROR.into(),
+            message: format!("{:?}: {:?}", error_message, err),
+        }),
     }
 }

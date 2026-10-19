@@ -35,6 +35,9 @@
             clippy
             nodejs
             rustfmt
+            docker
+
+            cargo-watch
 
             rust-analyzer
             nixd
