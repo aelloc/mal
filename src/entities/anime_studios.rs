@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use utility_types::Pick;
 
 #[derive(Pick)]
-#[pick(arg(ident = CreateAnimeStudio, fields(anime_id, studio_id), derive(Debug, Serialize, Deserialize, JsonSchema),forward_attrs()))]
-#[pick(arg(ident = UpdateAnimeStudio, fields(anime_id, studio_id), derive(Debug, Serialize, Deserialize, JsonSchema),forward_attrs()))]
+#[pick(arg(ident = CreateAnimeStudio, fields(anime_id, studio_id), derive(Debug, Serialize, Deserialize, JsonSchema, DeriveIntoActiveModel),forward_attrs()))]
+#[pick(arg(ident = UpdateAnimeStudio, fields(anime_id, studio_id), derive(Debug, Serialize, Deserialize, JsonSchema, DeriveIntoActiveModel),forward_attrs()))]
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, JsonSchema)]
 #[sea_orm(table_name = "anime_studios")]

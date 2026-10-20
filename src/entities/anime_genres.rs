@@ -3,8 +3,8 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utility_types::Pick;
 #[derive(Pick)]
-#[pick(arg(ident = CreateAnimeGenre, fields(anime_id, genre_id), derive(Debug, Serialize, Deserialize, JsonSchema),forward_attrs()))]
-#[pick(arg(ident = UpdateAnimeGenre, fields(anime_id, genre_id), derive(Debug, Serialize, Deserialize, JsonSchema),forward_attrs()))]
+#[pick(arg(ident = CreateAnimeGenre, fields(anime_id, genre_id), derive(Debug, Serialize, Deserialize, JsonSchema, DeriveIntoActiveModel),forward_attrs()))]
+#[pick(arg(ident = UpdateAnimeGenre, fields(anime_id, genre_id), derive(Debug, Serialize, Deserialize, JsonSchema, DeriveIntoActiveModel),forward_attrs()))]
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Deserialize, Serialize, JsonSchema)]
 #[sea_orm(table_name = "anime_genres")]

@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use utility_types::*;
 
 #[derive(Pick, Omit)]
-#[pick(arg(ident = CreateFavorite, fields(user_id, anime_id), derive(Debug, Serialize, Deserialize, JsonSchema),forward_attrs()))]
-#[pick(arg(ident = UpdateFavorite, fields(user_id, anime_id), derive(Debug, Serialize, Deserialize, JsonSchema),forward_attrs()))]
+#[pick(arg(ident = CreateFavorite, fields(user_id, anime_id), derive(Debug, Serialize, Deserialize, JsonSchema, DeriveIntoActiveModel),forward_attrs()))]
+#[pick(arg(ident = UpdateFavorite, fields(user_id, anime_id), derive(Debug, Serialize, Deserialize, JsonSchema, DeriveIntoActiveModel),forward_attrs()))]
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, JsonSchema)]
 #[sea_orm(table_name = "favorites")]

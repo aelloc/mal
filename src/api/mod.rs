@@ -1,7 +1,10 @@
 pub mod anime;
 pub mod anime_genres;
 pub mod extractor;
+pub mod genres;
 pub mod openapi;
+pub mod users;
+use crate::State;
 use aide::{
     OperationIo,
     axum::{IntoApiResponse, routing::get},
@@ -14,9 +17,8 @@ use sea_orm::DbErr;
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
-use tower_http::cors;
-
-use crate::State;
+use tower::Layer;
+use tower_http::{cors, normalize_path, trace::TraceLayer};
 
 pub async fn create_app(state: State) -> anyhow::Result<Router> {
     aide::generate::extract_schemas(true);
@@ -26,6 +28,8 @@ pub async fn create_app(state: State) -> anyhow::Result<Router> {
     let app = aide::axum::ApiRouter::new()
         .route("/", get(dummy))
         .nest("/animes", anime::router(state.clone()))
+        .nest("/genres", genres::router(state.clone()))
+        .nest("/users", users::router(state.clone()))
         .nest("/anime-genres", anime_genres::router(state.clone()))
         .route("/api.json", get(serve_docs))
         .route(
@@ -37,6 +41,7 @@ pub async fn create_app(state: State) -> anyhow::Result<Router> {
         .finish_api_with(&mut api, |op| {
             op.security_scheme(openapi::SECURITY_SCHEME_KEY, openapi::security_scheme())
         })
+        .layer(TraceLayer::new_for_http())
         .layer(Extension(Arc::new(api)))
         .layer(
             cors::CorsLayer::new()
@@ -44,6 +49,9 @@ pub async fn create_app(state: State) -> anyhow::Result<Router> {
                 .allow_headers(cors::Any),
         )
         .with_state(state);
+
+    let app = normalize_path::NormalizePathLayer::trim_trailing_slash().layer(app);
+
     Ok(app)
 }
 
@@ -97,6 +105,12 @@ impl IntoResponse for AppError {
             .into_response()
     }
 }
+
+// impl From<sea_orm::DbErr> for AppError {
+//     fn from(value: sea_orm::DbErr) -> Self {
+//         match value {}
+//     }
+// }
 
 pub fn consruct_response<T: Serialize>(
     value: Result<T, DbErr>,
